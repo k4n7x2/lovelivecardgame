@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Loveca 日本語化
 // @namespace    https://github.com/k4n7x2/lovelivecardgame
-// @version      0.6.1
+// @version      0.6.2
 // @description  loveca.lovelivefun.xyz のプレイヤー向けUIとカード表示を日本語化します。
 // @match        https://loveca.lovelivefun.xyz/*
 // @updateURL    https://raw.githubusercontent.com/k4n7x2/lovelivecardgame/main/loveca-ja.user.js
@@ -2662,6 +2662,7 @@
       if (isClosed && !cached && section.dataset.lovecaJaAutoProbe !== '1') {
         section.dataset.lovecaJaAutoProbe = '1';
         button.click();
+        requestAnimationFrame(() => requestAnimationFrame(() => schedule(section)));
         continue;
       }
 
@@ -2836,7 +2837,13 @@
     schedule(document);
     const observer = new MutationObserver((mutations) => {
       for (const mutation of mutations) {
-        if (mutation.type === 'characterData' || mutation.type === 'attributes') schedule(mutation.target);
+        if (
+          mutation.type === 'characterData' ||
+          mutation.type === 'attributes' ||
+          mutation.type === 'childList'
+        ) {
+          schedule(mutation.target);
+        }
         for (const node of mutation.addedNodes) schedule(node);
       }
     });
