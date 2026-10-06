@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Loveca 日本語化
 // @namespace    https://github.com/k4n7x2/lovelivecardgame
-// @version      0.7.3
+// @version      0.8.0
 // @description  loveca.lovelivefun.xyz のプレイヤー向けUIとカード表示を日本語化します。
 // @match        https://loveca.lovelivefun.xyz/*
 // @updateURL    https://raw.githubusercontent.com/k4n7x2/lovelivecardgame/main/loveca-ja.user.js
@@ -2671,6 +2671,74 @@
     [/^(\d+)\s*条记录$/u, '記録 $1件']
   ];
 
+
+  const siteExact9 = new Map(Object.entries({
+    // Judgment panel / score confirmation
+    '当前': '現在',
+    '后攻': '後攻',
+    '当前为分数最终确认阶段': '現在はスコア最終確認フェイズです',
+    '当前为胜者结果动画阶段': '現在は勝者演出フェイズです',
+    '当前为成功 Live 结算阶段': '現在は成功LIVE精算フェイズです',
+    '可随时查看并操作应援/判定区卡牌': 'エール/判定エリアのカードはいつでも確認・操作できます',
+    '当前没有 LIVE 卡': 'LIVEカードがありません',
+    '完整需求不可见': '必要ハートは非公開です',
+    '需求满足': '条件達成',
+    '需求不可见': '必要ハートは非公開です',
+    '当前没有可用于判定的 Heart。': '判定に使用できるハートがありません。',
+    '点击「翻开一张」从卡组顶翻开应援牌': '「1枚めくる」でデッキトップからエールカードを公開します',
+    '当前没有应援牌': 'エールカードがありません',
+    '接受自动判定': '自動判定を確定',
+    '强制失败': '強制失敗',
+    '强制成功': '強制成功',
+    '当前不在 Live 判定确认子阶段，本面板保持为辅助操作窗口。': '現在はLIVE判定の確認タイミングではありません。このパネルは補助操作用として表示されています。',
+    '↓ 翻开一张': '↓ 1枚めくる',
+    '拖到这里回手': 'ここへドラッグして手札へ',
+    '拖到这里弃置': 'ここへドラッグして控え室へ',
+    '拖到这里回卡组顶': 'ここへドラッグしてデッキトップへ',
+    'Live 分数最终确认': 'LIVEスコア最終確認',
+    '双方都确认后将判定胜者，并进入胜者动画与 Live 结算': '双方が確認すると勝者を判定し、勝者演出とLIVE精算へ進みます',
+    '规则模式将确认当前自动计算的分数': 'ルールモードでは自動計算された現在のスコアを確定します',
+    '调整己方分数': '自分のスコアを調整',
+    '确认我的分数': '自分のスコアを確定',
+    '已确认我的分数': '自分のスコア確認済み',
+    '等待对手操作': '相手の操作待ち',
+    '已确认': '確認済み',
+    '待确认': '確認待ち',
+    '己方玩家分数': '自分のスコア',
+    '对手方玩家分数': '相手のスコア',
+    '确认结算': '精算を確定',
+    '确认完成': '完了',
+    'Live 准备就绪': 'LIVEセット完了',
+    '进入后攻表演': '後攻LIVEへ',
+    '进入结算阶段': 'LIVE精算へ',
+    '撤销上一步': '直前の操作をUNDO',
+    '请求已发送，等待对手回应': 'UNDOを申請しました。相手の応答待ちです',
+    '正在发送撤销请求…': 'UNDOを申請中…',
+    '当前没有可请求撤销的步骤': 'UNDOを申請できる操作がありません',
+    '当前没有可撤销的步骤': 'UNDOできる操作がありません',
+    '我方': '自分',
+    '我方行动': '自分の操作',
+    '对手行动': '相手の操作',
+    '回放': 'リプレイ',
+    '检视': '確認中'
+  }));
+
+
+  const siteRegex7 = [
+    [/^当前为\s*(.+?)\s*的\s*Live\s*判定阶段$/u, '現在は$1のLIVE判定フェイズです'],
+    [/^当前为\s*(.+?)\s*的\s*LIVE\s*判定阶段$/u, '現在は$1のLIVE判定フェイズです'],
+    [/^(.+?)\s*的应援\s*\((\d+)\s*张\)$/u, '$1のエール（$2枚）'],
+    [/^主卡组剩余[:：]\s*(\d+)$/u, 'メインデッキ残り：$1'],
+    [/^成员心\s*\+\s*判心\s*·\s*总计\s*(\d+)$/u, 'メンバーハート + 判定ハート・合計 $1'],
+    [/^成员\s*(\d+)\s*\/\s*判心\s*(\d+)$/u, 'メンバー $1 / 判定ハート $2'],
+    [/^All Heart，可作为任意颜色使用；(.+)$/u, 'ALLハートは任意の色として使用できます；$1'],
+    [/^应援音符\s*\+(\d+)$/u, 'エールスコア +$1'],
+    [/^卡牌效果\s*\+(\d+)$/u, 'カード効果 +$1'],
+    [/^分数加成[:：]\s*(.*)$/u, 'スコア加算：$1'],
+    [/^(.+?)的判定信息，此视图仅供查看。$/u, '$1の判定情報を表示中です。この画面は確認専用です。'],
+    [/^正在查看(.+)玩家$/u, '$1プレイヤーを表示中']
+  ];
+
   const terms = [
     ['主卡组', 'メインデッキ'], ['能量卡组', 'ENERGYデッキ'],
     ['成功 LIVE 区', '成功LIVEエリア'], ['LIVE 区', 'LIVEエリア'],
@@ -2966,6 +3034,79 @@
     return out;
   }
 
+
+  const buttonPhraseReplacements = [
+    ['接受自动判定', '自動判定を確定'],
+    ['确认我的分数', '自分のスコアを確定'],
+    ['已确认我的分数', '自分のスコア確認済み'],
+    ['确认结算', '精算を確定'],
+    ['确认完成', '完了'],
+    ['Live 准备就绪', 'LIVEセット完了'],
+    ['进入后攻表演', '後攻LIVEへ'],
+    ['进入结算阶段', 'LIVE精算へ'],
+    ['请求撤销', 'UNDOを申請'],
+    ['继续撤销', 'UNDOを続行'],
+    ['撤销上一步', '直前の操作をUNDO'],
+    ['强制失败', '強制失敗'],
+    ['强制成功', '強制成功'],
+    ['翻开一张', '1枚めくる'],
+    ['加入手牌', '手札に加える'],
+    ['放入休息室', '控え室に置く'],
+    ['回卡组顶', 'デッキトップに戻す'],
+    ['放回卡组顶', 'デッキトップに戻す'],
+    ['不发动', '発動しない'],
+    ['不放置', '置かない'],
+    ['不加入', '加えない'],
+    ['公开并加入手牌', '公開して手札に加える'],
+    ['确认公开结果', '公開結果を確認'],
+    ['选择效果', '効果を選択'],
+    ['确认选择', '選択を確定'],
+    ['取消选择', '選択解除'],
+    ['取消', 'キャンセル'],
+    ['关闭', '閉じる'],
+    ['打开', '開く'],
+    ['返回', '戻る'],
+    ['进入', '進む'],
+    ['继续', '続行'],
+    ['确认', '確定'],
+    ['完成', '完了'],
+    ['选择', '選択'],
+    ['查看', '確認'],
+    ['撤销', 'UNDO'],
+    ['请求', '申請'],
+    ['应援', 'エール'],
+    ['分数', 'スコア'],
+    ['自动判定', '自動判定'],
+    ['对手', '相手'],
+    ['我方', '自分'],
+    ['当前', '現在'],
+    ['后攻', '後攻']
+  ];
+
+  function translateButtonFallback(value) {
+    if (!value || typeof value !== 'string') return value;
+    const core = value.trim();
+    if (!core || !/[\u3400-\u9fff]/u.test(core)) return value;
+    let out = core;
+    for (const [from, to] of buttonPhraseReplacements) {
+      if (out.includes(from)) out = out.split(from).join(to);
+    }
+    if (out === core) return value;
+    const lead = value.match(/^\s*/u)?.[0] ?? '';
+    const tail = value.match(/\s*$/u)?.[0] ?? '';
+    return lead + out + tail;
+  }
+
+  function isButtonLikeNode(node) {
+    const element =
+      node?.nodeType === Node.TEXT_NODE
+        ? node.parentElement
+        : node instanceof Element
+          ? node
+          : null;
+    return Boolean(element?.closest?.('button, [role="button"]'));
+  }
+
   function translateCore(text) {
     if (cardNames.has(text)) return cardNames.get(text);
     if (cardTexts.has(text)) return cardTexts.get(text);
@@ -2986,11 +3127,20 @@
     else if (siteExact6.has(out)) out = siteExact6.get(out);
     else if (siteExact7.has(out)) out = siteExact7.get(out);
     else if (siteExact8.has(out)) out = siteExact8.get(out);
+    else if (siteExact9.has(out)) out = siteExact9.get(out);
     else {
       for (const rule of regex) {
         if (rule[0].test(out)) {
           out = out.replace(rule[0], rule[1]);
           break;
+        }
+      }
+      if (out === text) {
+        for (const rule of siteRegex7) {
+          if (rule[0].test(out)) {
+            out = out.replace(rule[0], rule[1]);
+            break;
+          }
         }
       }
       if (out === text) {
@@ -3071,7 +3221,10 @@
     for (const attr of attrs) {
       if (!el.hasAttribute(attr)) continue;
       const before = el.getAttribute(attr) || '';
-      const after = translateString(before);
+      let after = translateString(before);
+      if (after === before && el.matches('button, [role="button"]')) {
+        after = translateButtonFallback(before);
+      }
       if (before !== after) el.setAttribute(attr, after);
     }
   }
@@ -3086,6 +3239,9 @@
       let after = translateString(before);
       if (after === before && isInsideActiveEffectPanel(root)) {
         after = translateActiveEffectFallback(before);
+      }
+      if (after === before && isButtonLikeNode(root)) {
+        after = translateButtonFallback(before);
       }
       if (after !== root.nodeValue) root.nodeValue = after;
       return;
