@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Loveca 日本語化
 // @namespace    https://github.com/k4n7x2/lovelivecardgame
-// @version      0.8.0
+// @version      0.8.1
 // @description  loveca.lovelivefun.xyz のプレイヤー向けUIとカード表示を日本語化します。
 // @match        https://loveca.lovelivefun.xyz/*
 // @updateURL    https://raw.githubusercontent.com/k4n7x2/lovelivecardgame/main/loveca-ja.user.js
@@ -127,6 +127,7 @@
     '该卡牌没有效果描述。': 'このカードには効果テキストがありません。',
     '中文': '中国語',
     '日文': '日本語',
+    '原卡文': '中国語カードテキスト',
     'LIVE开始时': 'LIVE開始時',
     'LIVE成功时': 'LIVE成功時',
     '自动': '自動',
@@ -3273,19 +3274,64 @@
 
   const effectPanelCache = new WeakMap();
 
-  function cloneChildrenInto(target, template) {
-    const clones = Array.from(template.childNodes, (node) => node.cloneNode(true));
-    target.replaceChildren(...clones);
+  function ensureEffectOverlayStyle() {
+    if (document.getElementById('loveca-ja-effect-overlay-style')) return;
+    const style = document.createElement('style');
+    style.id = 'loveca-ja-effect-overlay-style';
+    style.textContent = [
+      '.card-effect-rendered[data-loveca-ja-effect-text] {',
+      '  font-size: 0 !important;',
+      '  line-height: 0 !important;',
+      '}',
+      '.card-effect-rendered[data-loveca-ja-effect-text] > * {',
+      '  display: none !important;',
+      '}',
+      '.card-effect-rendered[data-loveca-ja-effect-text]::before {',
+      '  content: attr(data-loveca-ja-effect-text);',
+      '  display: block;',
+      '  white-space: pre-wrap;',
+      '  overflow-wrap: anywhere;',
+      '  font-size: 13px;',
+      '  line-height: 1.7;',
+      '  color: var(--text-primary);',
+      '}',
+      '@media (min-width: 768px) {',
+      '  .card-effect-rendered[data-loveca-ja-effect-text]::before {',
+      '    font-size: 14px;',
+      '  }',
+      '}'
+    ].join('\n');
+    (document.head || document.documentElement).appendChild(style);
+  }
+
+  function serializeLocalizedEffect(root) {
+    let out = '';
+
+    const visit = (node) => {
+      if (node.nodeType === Node.TEXT_NODE) {
+        out += node.nodeValue || '';
+        return;
+      }
+      if (!(node instanceof Element)) return;
+
+      if (node.classList.contains('card-effect-icon-token')) {
+        const label =
+          (node.getAttribute('aria-label') || node.getAttribute('title') || '').trim();
+        if (label) out += '[' + label + ']';
+        return;
+      }
+
+      for (const child of node.childNodes) visit(child);
+    };
+
+    visit(root);
+    return out.replace(/[ \t]+\n/gu, '\n').trim();
   }
 
   function applyJapaneseEffectPanel(box, cached) {
     const mainEffect = box?.firstElementChild;
-    if (!mainEffect || !cached?.jpTemplate) return false;
-    cloneChildrenInto(mainEffect, cached.jpTemplate);
-    if (cached.runtimeSuffix) {
-      mainEffect.append(document.createTextNode(' ' + cached.runtimeSuffix));
-    }
-    mainEffect.dataset.lovecaJaJapaneseEffect = '1';
+    if (!mainEffect || !cached?.displayText) return false;
+    mainEffect.setAttribute('data-loveca-ja-effect-text', cached.displayText);
     return true;
   }
 
@@ -3306,15 +3352,26 @@
 
       const section = button.parentElement;
       const box = section?.parentElement;
-      if (!section || !box) continue;
+      const mainEffect = box?.firstElementChild;
+      if (!section || !box || !mainEffect) continue;
 
-      button.textContent = isOpen ? '中国語テキストを閉じる' : '中国語テキストを見る';
+      const sourceText = (mainEffect.textContent || '').trim();
+      let cached = effectPanelCache.get(box);
 
-      const cached = effectPanelCache.get(box);
+      if (cached && cached.sourceText !== sourceText) {
+        effectPanelCache.delete(box);
+        mainEffect.removeAttribute('data-loveca-ja-effect-text');
+        cached = null;
+      }
+
       if (cached) applyJapaneseEffectPanel(box, cached);
 
-      if (isClosed && !cached && section.dataset.lovecaJaAutoProbe !== '1') {
-        section.dataset.lovecaJaAutoProbe = '1';
+      if (
+        isClosed &&
+        !cached &&
+        section.dataset.lovecaJaAutoProbeSignature !== sourceText
+      ) {
+        section.dataset.lovecaJaAutoProbeSignature = sourceText;
         button.click();
         requestAnimationFrame(() => requestAnimationFrame(() => schedule(section)));
         continue;
@@ -3328,34 +3385,35 @@
         if (label.children.length > 0) continue;
         const labelText = (label.textContent || '').trim();
 
-        if (labelText === '原卡文' || labelText === 'カードテキスト' || labelText === '元のカードテキスト') {
-          label.textContent = '中国語カードテキスト';
-        } else if (labelText === '中文' || labelText === '中国語') {
+        if (labelText === '中文' || labelText === '中国語') {
           cnRow = label.parentElement;
-          label.textContent = '中国語';
         } else if (labelText === '日文' || labelText === '日本語') {
           jpRow = label.parentElement;
-          label.textContent = '日本語';
         }
       }
 
       const cnEffect = cnRow?.children?.[1] ?? null;
       const jpEffect = jpRow?.children?.[1] ?? null;
-      const mainEffect = box.firstElementChild;
 
-      if (jpEffect && mainEffect) {
-        const mainText = (mainEffect.textContent || '').trim();
+      if (jpEffect) {
+        const jpText = serializeLocalizedEffect(jpEffect);
         const cnText = (cnEffect?.textContent || '').trim();
         let runtimeSuffix = '';
 
-        if (cnText && mainText.startsWith(cnText)) {
-          runtimeSuffix = mainText.slice(cnText.length).trim();
+        if (cnText && sourceText.startsWith(cnText)) {
+          runtimeSuffix = sourceText.slice(cnText.length).trim();
+        } else {
+          const statusSuffix = sourceText.match(
+            /([（(][^（）()]*?(?:成功LIVE|条件|满足|未满足|分数)[^（）()]*[）)])\s*$/u
+          );
+          runtimeSuffix = statusSuffix?.[1] ?? '';
         }
 
         runtimeSuffix = translateEffectRuntimeSuffix(runtimeSuffix);
-        const jpTemplate = jpEffect.cloneNode(true);
-        effectPanelCache.set(box, { jpTemplate, runtimeSuffix });
-        applyJapaneseEffectPanel(box, { jpTemplate, runtimeSuffix });
+        const displayText = [jpText, runtimeSuffix].filter(Boolean).join(' ');
+        cached = { sourceText, displayText };
+        effectPanelCache.set(box, cached);
+        applyJapaneseEffectPanel(box, cached);
 
         if (jpRow) {
           jpRow.dataset.lovecaJaHiddenJpOriginal = '1';
@@ -3366,27 +3424,32 @@
           cnRow.style.display = '';
         }
 
-        if (section.dataset.lovecaJaAutoProbe === '1') {
-          section.dataset.lovecaJaAutoProbe = 'done';
+        if (section.dataset.lovecaJaAutoProbeSignature === sourceText) {
           queueMicrotask(() => {
-            if ((button.textContent || '').trim() === '中国語テキストを閉じる') button.click();
+            const label = (button.textContent || '').trim();
+            if (
+              label === '中国語テキストを閉じる' ||
+              label === '元のカードテキストを閉じる' ||
+              label === '收起原卡文'
+            ) {
+              button.click();
+            }
           });
         }
       }
     }
   }
+
   function normalizeCardRows(root) {
     if (!root.querySelectorAll) return;
     for (const label of root.querySelectorAll('span')) {
       const text = (label.textContent || '').trim();
       if (text === '中文' || text === '中国語') {
         const row = label.parentElement;
-        if (row && !row.dataset.lovecaJaHiddenCn) {
+        if (row && !row.dataset.lovecaJaOriginalCn && !row.dataset.lovecaJaHiddenCn) {
           row.dataset.lovecaJaHiddenCn = '1';
           row.style.display = 'none';
         }
-      } else if (text === '日文') {
-        label.textContent = '日本語';
       }
     }
   }
@@ -3488,6 +3551,7 @@
 
   function boot() {
     document.documentElement.lang = 'ja';
+    ensureEffectOverlayStyle();
     schedule(document);
     const observer = new MutationObserver((mutations) => {
       for (const mutation of mutations) {
