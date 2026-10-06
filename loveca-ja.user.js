@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Loveca 日本語化
 // @namespace    https://github.com/k4n7x2/lovelivecardgame
-// @version      0.8.1
+// @version      0.8.2
 // @description  loveca.lovelivefun.xyz のプレイヤー向けUIとカード表示を日本語化します。
 // @match        https://loveca.lovelivefun.xyz/*
 // @updateURL    https://raw.githubusercontent.com/k4n7x2/lovelivecardgame/main/loveca-ja.user.js
@@ -2740,6 +2740,73 @@
     [/^正在查看(.+)玩家$/u, '$1プレイヤーを表示中']
   ];
 
+
+  const siteExact10 = new Map(Object.entries({
+    // Online undo request modal
+    '撤销请求': 'UNDOリクエスト',
+    '如果这一步公开了隐藏信息，撤销只回滚局面，不能消除已经看到的信息。': 'この操作で非公開情報が公開されていた場合、UNDOで盤面は戻せますが、すでに見た情報まで元に戻すことはできません。',
+    '也可以允许对手连续撤销这一串操作；换阶段或有新动作后会失效。': '相手に連続UNDOを許可することもできます。この許可はフェイズが変わるか、新しい操作が行われると失効します。',
+    '等待对手回应': '相手の応答待ち',
+    '拒绝': '拒否',
+    '接受': '承認',
+    '允许连续': '連続UNDOを許可',
+
+    // Free-mode request modal
+    '自由模式请求': 'フリーモードリクエスト',
+    '开启后，双方可免费登场及手动调整己方区域，用于人工处理尚未自动化的规则。': '開始すると、双方がコストなしの登場や自分側エリアの手動調整を行えます。自動処理されていないルールを手動で処理するためのモードです。',
+    '不会获得操作对手或读取对手隐藏信息的权限。任意一方都可在安全时点单方恢复规则模式。': '相手側を操作したり、相手の非公開情報を確認したりする権限は得られません。安全なタイミングで、どちらのプレイヤーからでもルールモードへ戻せます。',
+    '取消请求': '申請をキャンセル',
+    '同意开启': '開始を承認',
+
+    // Undo target command names
+    'ACK_CARD_ENTRANCE': '登場演出を確認',
+    'MULLIGAN': 'マリガン',
+    'SET_LIVE_CARD': 'LIVEカードをセット',
+    'UNSET_LIVE_CARD': 'セットしたLIVEカードを手札へ戻す',
+    'TAP_MEMBER': 'メンバーのACTIVE / WAITを切り替え',
+    'TAP_ENERGY': 'ENERGYのACTIVE / WAITを切り替え',
+    'END_PHASE': 'フェイズを終了',
+    'OPEN_INSPECTION': 'カード確認を開始',
+    'REVEAL_CHEER_CARD': 'エールカードを公開',
+    'REVEAL_INSPECTED_CARD': '確認カードを公開',
+    'MOVE_INSPECTED_CARD_TO_TOP': '確認カードをデッキトップへ移動',
+    'MOVE_INSPECTED_CARD_TO_BOTTOM': '確認カードをデッキボトムへ移動',
+    'MOVE_INSPECTED_CARD_TO_ZONE': '確認カードを別エリアへ移動',
+    'MOVE_CARD_TO_INSPECTION': 'カードを確認エリアへ移動',
+    'REORDER_INSPECTED_CARD': '確認カードの順番を変更',
+    'FINISH_INSPECTION_WITH_ARRANGEMENT': 'カード確認を確定',
+    'MOVE_RESOLUTION_CARD_TO_ZONE': '解決領域のカードを移動',
+    'MOVE_TABLE_CARD': 'カードを移動',
+    'MOVE_MEMBER_TO_SLOT': 'メンバーを移動',
+    'ATTACH_ENERGY_TO_MEMBER': 'ENERGYをメンバーに付与',
+    'PLAY_MEMBER_TO_SLOT': 'メンバーを登場',
+    'BEGIN_SPECIAL_MEMBER_PLAY': '特殊登場を開始',
+    'CONFIRM_SPECIAL_MEMBER_PLAY': '特殊登場を確定',
+    'CANCEL_SPECIAL_MEMBER_PLAY': '特殊登場をキャンセル',
+    'ACTIVATE_ABILITY': '起動効果を発動',
+    'MOVE_PUBLIC_CARD_TO_WAITING_ROOM': '公開カードを控え室へ移動',
+    'MOVE_PUBLIC_CARD_TO_HAND': '公開カードを手札へ移動',
+    'MOVE_PUBLIC_CARD_TO_ENERGY_DECK': '公開ENERGYをENERGYデッキへ戻す',
+    'MOVE_OWNED_CARD_TO_ZONE': '自分のカードを別エリアへ移動',
+    'FINISH_INSPECTION': 'カード確認を終了',
+    'CONFIRM_COST_PAYMENT': 'コスト支払いを確定',
+    'CONFIRM_EFFECT_STEP': 'カード効果の処理を確定',
+    'CONFIRM_STEP': '処理ステップを確定',
+    'CONFIRM_PERFORMANCE_OUTCOME': 'LIVE結果を確定',
+    'SUBMIT_JUDGMENT': 'LIVE判定を確定',
+    'SUBMIT_SCORE': 'スコアを確定',
+    'SELECT_SUCCESS_LIVE': '成功LIVEを選択',
+    'DRAW_CARD_TO_HAND': '1枚ドロー',
+    'DRAW_ENERGY_TO_ZONE': 'ENERGYを1枚置く',
+    'RETURN_HAND_CARD_TO_TOP': '手札をデッキトップへ戻す',
+    'SURRENDER': '投了'
+  }));
+
+  const siteRegex8 = [
+    [/^(.+?)\s+请求撤销上一步$/u, '$1 が直前の操作のUNDOを申請'],
+    [/^(.+?)\s+请求开启自由模式$/u, '$1 がフリーモード開始を申請']
+  ];
+
   const terms = [
     ['主卡组', 'メインデッキ'], ['能量卡组', 'ENERGYデッキ'],
     ['成功 LIVE 区', '成功LIVEエリア'], ['LIVE 区', 'LIVEエリア'],
@@ -3129,11 +3196,20 @@
     else if (siteExact7.has(out)) out = siteExact7.get(out);
     else if (siteExact8.has(out)) out = siteExact8.get(out);
     else if (siteExact9.has(out)) out = siteExact9.get(out);
+    else if (siteExact10.has(out)) out = siteExact10.get(out);
     else {
       for (const rule of regex) {
         if (rule[0].test(out)) {
           out = out.replace(rule[0], rule[1]);
           break;
+        }
+      }
+      if (out === text) {
+        for (const rule of siteRegex8) {
+          if (rule[0].test(out)) {
+            out = out.replace(rule[0], rule[1]);
+            break;
+          }
         }
       }
       if (out === text) {
