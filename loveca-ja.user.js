@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Loveca 日本語化
 // @namespace    https://github.com/k4n7x2/lovelivecardgame
-// @version      0.5.2
+// @version      0.6.0
 // @description  loveca.lovelivefun.xyz のプレイヤー向けUIとカード表示を日本語化します。
 // @match        https://loveca.lovelivefun.xyz/*
 // @updateURL    https://raw.githubusercontent.com/k4n7x2/lovelivecardgame/main/loveca-ja.user.js
@@ -17,6 +17,8 @@
   const CARD_API = '/api/cards';
   const cardNames = new Map();
   const cardTexts = new Map();
+  const cardTextPrefixes = new Map();
+  let cardTextPrefixBuckets = new Map();
   let cardNameRegex = null;
   const skipTags = new Set(['SCRIPT', 'STYLE', 'NOSCRIPT', 'TEXTAREA', 'INPUT', 'CODE', 'PRE']);
   const attrs = ['title', 'aria-label', 'aria-description', 'aria-valuetext', 'placeholder', 'alt', 'data-tooltip'];
@@ -125,6 +127,16 @@
     '该卡牌没有效果描述。': 'このカードには効果テキストがありません。',
     '中文': '中国語',
     '日文': '日本語',
+    'LIVE开始时': 'LIVE開始時',
+    'LIVE成功时': 'LIVE成功時',
+    '自动': '自動',
+    '常时': '常時',
+    '1回合1次': 'ターン1回',
+    '1回合2次': 'ターン2回',
+    '1回合3次': 'ターン3回',
+    '每回合1次': 'ターン1回',
+    '每回合2次': 'ターン2回',
+    '每回合3次': 'ターン3回',
     '费用': 'コスト',
     '分数': 'スコア',
     '粉': '桃',
@@ -2397,6 +2409,98 @@
     [/^放置\s*(\d+)\s*张能量$/u, 'ENERGYを$1枚置く']
   ];
 
+
+  const ABILITY_MARKER_RE =
+    /(?:【(?:登場|登场|起動|起动|自動|自动|常時|常时|ライブ開始時|LIVE開始時|LIVE开始时|ライブ成功時|LIVE成功時|LIVE成功时|ターン[123]回|1回合[123]次|每回合[123]次)】|\[(?:登場|登场|起動|起动|自動|自动|常時|常时|ライブ開始時|LIVE開始時|LIVE开始时|ライブ成功時|LIVE成功時|LIVE成功时|ターン[123]回|1回合[123]次|每回合[123]次)\])/gu;
+
+  function stripLeadingAbilityMarker(text) {
+    return text
+      .replace(
+        /^(?:【(?:登場|登场|起動|起动|自動|自动|常時|常时|ライブ開始時|LIVE開始時|LIVE开始时|ライブ成功時|LIVE成功時|LIVE成功时|ターン[123]回|1回合[123]次|每回合[123]次)】|\[(?:登場|登场|起動|起动|自動|自动|常時|常时|ライブ開始時|LIVE開始時|LIVE开始时|ライブ成功時|LIVE成功時|LIVE成功时|ターン[123]回|1回合[123]次|每回合[123]次)\])\s*/u,
+        ''
+      )
+      .trim();
+  }
+
+  function splitAbilitySegments(text) {
+    const matches = Array.from(text.matchAll(ABILITY_MARKER_RE));
+    if (matches.length <= 1) return [text.trim()].filter(Boolean);
+    const segments = [];
+    for (let index = 0; index < matches.length; index += 1) {
+      const start = matches[index].index ?? 0;
+      const end = index + 1 < matches.length ? (matches[index + 1].index ?? text.length) : text.length;
+      const segment = text.slice(start, end).trim();
+      if (segment) segments.push(segment);
+    }
+    return segments;
+  }
+
+  function addCardTextPrefix(cnText, jpText) {
+    const cn = stripLeadingAbilityMarker(cnText);
+    const jp = stripLeadingAbilityMarker(jpText);
+    if (!cn || !jp || cn === jp || cn.length < 4) return;
+    if (!cardTextPrefixes.has(cn)) cardTextPrefixes.set(cn, jp);
+  }
+
+  function registerCardTextPair(cnText, jpText) {
+    if (!cnText || !jpText || cnText === jpText) return;
+    cardTexts.set(cnText, jpText);
+    addCardTextPrefix(cnText, jpText);
+
+    const cnSegments = splitAbilitySegments(cnText);
+    const jpSegments = splitAbilitySegments(jpText);
+    if (cnSegments.length === jpSegments.length) {
+      for (let index = 0; index < cnSegments.length; index += 1) {
+        addCardTextPrefix(cnSegments[index], jpSegments[index]);
+      }
+    }
+  }
+
+  function rebuildCardTextPrefixBuckets() {
+    const buckets = new Map();
+    for (const [cn, jp] of cardTextPrefixes) {
+      const key = cn[0];
+      if (!key) continue;
+      if (!buckets.has(key)) buckets.set(key, []);
+      buckets.get(key).push([cn, jp]);
+    }
+    for (const entries of buckets.values()) {
+      entries.sort((left, right) => right[0].length - left[0].length);
+    }
+    cardTextPrefixBuckets = buckets;
+  }
+
+  function replaceCardTextPrefix(text) {
+    const entries = cardTextPrefixBuckets.get(text[0]);
+    if (!entries) return text;
+    for (const [cn, jp] of entries) {
+      if (text.startsWith(cn)) return jp + text.slice(cn.length);
+    }
+    return text;
+  }
+
+  function translateEffectRuntimeSuffix(text) {
+    return text
+      .replace(/自己成功LIVE\s*(\d+)\s*张/gu, '自分の成功LIVE $1枚')
+      .replace(/对方成功LIVE\s*(\d+)\s*张/gu, '相手の成功LIVE $1枚')
+      .replace(/不同名成员\s*(\d+)\s*名/gu, '異なる名前のメンバー $1人')
+      .replace(/未满足条件/gu, '条件未達')
+      .replace(/满足条件/gu, '条件達成')
+      .replace(/不增加分数/gu, 'スコアを追加しない')
+      .replace(/增加分数/gu, 'スコアを追加');
+  }
+
+  function isChineseOriginalCardTextContent(node) {
+    let element = node?.parentElement ?? null;
+    for (let depth = 0; element && depth < 6; depth += 1, element = element.parentElement) {
+      const first = element.firstElementChild;
+      if (!first) continue;
+      const label = (first.textContent || '').trim();
+      if ((label === '中文' || label === '中国語') && !first.contains(node)) return true;
+    }
+    return false;
+  }
+
   function translateCore(text) {
     if (cardNames.has(text)) return cardNames.get(text);
     if (cardTexts.has(text)) return cardTexts.get(text);
@@ -2445,6 +2549,8 @@
         }
       }
     }
+    const effectText = replaceCardTextPrefix(out);
+    if (effectText !== out) out = translateEffectRuntimeSuffix(effectText);
     if (cardNameRegex) out = out.replace(cardNameRegex, (name) => cardNames.get(name) || name);
     return out;
   }
@@ -2481,6 +2587,7 @@
     if (root.nodeType === Node.TEXT_NODE) {
       const parent = root.parentElement;
       if (!parent || skipTags.has(parent.tagName) || editable(parent)) return;
+      if (isChineseOriginalCardTextContent(root)) return;
       const after = translateString(root.nodeValue || '');
       if (after !== root.nodeValue) root.nodeValue = after;
       return;
@@ -2504,7 +2611,40 @@
       if (node.nodeType === Node.TEXT_NODE) translateNode(node);
       else translateElement(node);
     }
-    normalizeCardRows(root instanceof DocumentFragment ? document : root);
+    const normalizedRoot = root instanceof DocumentFragment ? document : root;
+    normalizeCardRows(normalizedRoot);
+    normalizeEffectOriginalTextRows(normalizedRoot);
+  }
+
+
+  function normalizeEffectOriginalTextRows(root) {
+    if (!root.querySelectorAll) return;
+    for (const button of root.querySelectorAll('button')) {
+      const text = (button.textContent || '').trim();
+      const isOpen = text === '元のカードテキストを閉じる' || text === '收起原卡文';
+      const isClosed = text === '元のカードテキストを見る' || text === '查看原卡文';
+      if (!isOpen && !isClosed) continue;
+
+      button.textContent = isOpen ? '中国語テキストを閉じる' : '中国語テキストを見る';
+      const container = button.parentElement;
+      if (!container) continue;
+
+      for (const label of container.querySelectorAll('div')) {
+        const labelText = (label.textContent || '').trim();
+        if (labelText === '原卡文' || labelText === 'カードテキスト') {
+          if (label.children.length === 0) label.textContent = '中国語カードテキスト';
+        } else if (labelText === '日文' || labelText === '日本語') {
+          const row = label.parentElement;
+          if (row && row !== container) {
+            row.dataset.lovecaJaHiddenJpOriginal = '1';
+            row.style.display = 'none';
+          }
+        } else if (labelText === '中文' || labelText === '中国語') {
+          const row = label.parentElement;
+          if (row && row.dataset.lovecaJaHiddenCn !== '1') row.style.display = '';
+        }
+      }
+    }
   }
 
   function normalizeCardRows(root) {
@@ -2549,8 +2689,9 @@
         const cnText = typeof card.card_text_cn === 'string' ? card.card_text_cn.trim() : '';
         const jpText = typeof card.card_text_jp === 'string' ? card.card_text_jp.trim() : '';
         if (cnName && jpName && cnName !== jpName) cardNames.set(cnName, jpName);
-        if (cnText && jpText && cnText !== jpText) cardTexts.set(cnText, jpText);
+        if (cnText && jpText && cnText !== jpText) registerCardTextPair(cnText, jpText);
       }
+      rebuildCardTextPrefixBuckets();
       const names = Array.from(cardNames.keys()).sort((a, b) => b.length - a.length);
       const escapeRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       cardNameRegex = names.length
