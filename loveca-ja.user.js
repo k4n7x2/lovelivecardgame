@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Loveca 日本語化
 // @namespace    https://github.com/k4n7x2/lovelivecardgame
-// @version      0.7.1
+// @version      0.7.2
 // @description  loveca.lovelivefun.xyz のプレイヤー向けUIとカード表示を日本語化します。
 // @match        https://loveca.lovelivefun.xyz/*
 // @updateURL    https://raw.githubusercontent.com/k4n7x2/lovelivecardgame/main/loveca-ja.user.js
@@ -2602,6 +2602,37 @@
     [/^(.+)，(.+)暂时不可用$/u, '$1：$2は現在利用できません']
   ];
 
+
+  const siteExact7 = new Map(Object.entries({
+    '对手': '相手',
+    '己方': '自分',
+    '公开给对手': '相手に公開',
+    '从主卡组抽一张牌': 'メインデッキから1枚ドロー',
+    '当前不能抽牌': '現在はドローできません',
+    '抽 1': '1枚ドロー',
+    '抽 1 张': '1枚ドロー',
+    '成功 Live 卡区': '成功LIVEエリア',
+    '成功 Live': '成功LIVE',
+    '成功区': '成功LIVEエリア',
+    '休息': '控え室',
+    '顶': 'トップ',
+    '底': 'ボトム',
+    '下次活跃阶段不会自动变为活跃': '次のアクティブフェイズでは自動的にACTIVEになりません',
+    '检视卡组顶': 'デッキトップを確認',
+    '放置 Live 卡: 手牌 → Live 区（里侧）': 'LIVEカードをセット：手札 → LIVEエリア（裏向き）',
+    '选择成功 Live 卡进入成功区': '成功LIVEを選んで成功LIVEエリアへ',
+    '放置能量: 能量卡组顶 → 能量区': 'ENERGYを置く：ENERGYデッキトップ → ENERGYエリア',
+    '自由放置 Live 卡: 手牌 → Live 区（正面）': 'フリー配置：手札 → LIVEエリア（表向き）',
+    '公开能量回到能量卡组: ENERGY_ZONE → ENERGY_DECK': '公開ENERGYをENERGYデッキへ戻す',
+    '，当前视角': '、現在の視点',
+    '，切换至此视角': '、この視点へ切り替え',
+    '从主卡组抽一张牌': 'メインデッキから1枚ドロー',
+    '将所选手牌放回主卡组顶': '選択した手札をメインデッキの上に戻す',
+    '将所选手牌放回牌库顶': '選択した手札をデッキトップに戻す',
+    '放回卡组顶': 'デッキトップに戻す',
+    '放回牌库顶': 'デッキトップに戻す'
+  }));
+
   const terms = [
     ['主卡组', 'メインデッキ'], ['能量卡组', 'ENERGYデッキ'],
     ['成功 LIVE 区', '成功LIVEエリア'], ['LIVE 区', 'LIVEエリア'],
@@ -2877,6 +2908,7 @@
     else if (siteExact4.has(out)) out = siteExact4.get(out);
     else if (siteExact5.has(out)) out = siteExact5.get(out);
     else if (siteExact6.has(out)) out = siteExact6.get(out);
+    else if (siteExact7.has(out)) out = siteExact7.get(out);
     else {
       for (const rule of regex) {
         if (rule[0].test(out)) {
