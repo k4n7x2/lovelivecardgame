@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Loveca 日本語化
 // @namespace    https://github.com/k4n7x2/lovelivecardgame
-// @version      0.6.2
+// @version      0.6.3
 // @description  loveca.lovelivefun.xyz のプレイヤー向けUIとカード表示を日本語化します。
 // @match        https://loveca.lovelivefun.xyz/*
 // @updateURL    https://raw.githubusercontent.com/k4n7x2/lovelivecardgame/main/loveca-ja.user.js
@@ -2689,9 +2689,9 @@
       const jpEffect = jpRow?.children?.[1] ?? null;
       const mainEffect = box.firstElementChild;
 
-      if (cnEffect && jpEffect && mainEffect) {
+      if (jpEffect && mainEffect) {
         const mainText = (mainEffect.textContent || '').trim();
-        const cnText = (cnEffect.textContent || '').trim();
+        const cnText = (cnEffect?.textContent || '').trim();
         let runtimeSuffix = '';
 
         if (cnText && mainText.startsWith(cnText)) {
