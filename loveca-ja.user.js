@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Loveca 日本語化
 // @namespace    https://github.com/k4n7x2/lovelivecardgame
-// @version      0.5.1
+// @version      0.5.2
 // @description  loveca.lovelivefun.xyz のプレイヤー向けUIとカード表示を日本語化します。
 // @match        https://loveca.lovelivefun.xyz/*
 // @updateURL    https://raw.githubusercontent.com/k4n7x2/lovelivecardgame/main/loveca-ja.user.js
@@ -2158,7 +2158,8 @@
     [/^阶段推进失败:\s*(.+)$/u, 'フェイズ進行に失敗しました：$1'],
     [/^处理自由模式请求失败:\s*(.+)$/u, 'フリーモードリクエストの処理に失敗しました：$1'],
     [/^请求撤销失败:\s*(.+)$/u, 'UNDOリクエストに失敗しました：$1'],
-    [/^(接受|拒绝)撤销失败:\s*(.+)$/u, '$1UNDOに失敗しました：$2']
+    [/^接受撤销失败:\s*(.+)$/u, 'UNDO承認に失敗しました：$1'],
+    [/^拒绝撤销失败:\s*(.+)$/u, 'UNDO拒否に失敗しました：$1'],
   ];
 
 
