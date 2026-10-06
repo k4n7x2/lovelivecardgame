@@ -2119,10 +2119,9 @@
         if (cnText && jpText && cnText !== jpText) cardTexts.set(cnText, jpText);
       }
       const names = Array.from(cardNames.keys()).sort((a, b) => b.length - a.length);
+      const escapeRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       cardNameRegex = names.length
-        ? new RegExp(names.map((name) => name.replace(/[.*+?^${}()|[\\]\\]/g, '\\        if (cnText && jpText && cnText !== jpText) cardTexts.set(cnText, jpText);
-      }
-      schedule(document);')).join('|'), 'gu')
+        ? new RegExp(names.map(escapeRegExp).join('|'), 'gu')
         : null;
       schedule(document);
     } catch (error) {
