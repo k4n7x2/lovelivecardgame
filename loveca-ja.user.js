@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Loveca 日本語化
 // @namespace    https://github.com/k4n7x2/lovelivecardgame
-// @version      0.7.2
+// @version      0.7.3
 // @description  loveca.lovelivefun.xyz のプレイヤー向けUIとカード表示を日本語化します。
 // @match        https://loveca.lovelivefun.xyz/*
 // @updateURL    https://raw.githubusercontent.com/k4n7x2/lovelivecardgame/main/loveca-ja.user.js
@@ -2633,6 +2633,44 @@
     '放回牌库顶': 'デッキトップに戻す'
   }));
 
+
+  const siteExact8 = new Map(Object.entries({
+    '起动': '起動',
+    '当前行动玩家': '現在の操作プレイヤー',
+    '查看对墙打对手战场': 'ソロテストの相手盤面を見る',
+    '查看对手战场': '相手の盤面を見る',
+    '返回己方战场': '自分の盤面へ戻る',
+    '；当前状态：等待': '；現在の状態：WAIT',
+    '；当前状态：活跃': '；現在の状態：ACTIVE',
+    '；下次活跃阶段不会自动变为活跃': '；次のアクティブフェイズでは自動的にACTIVEになりません',
+    '判定': '判定',
+    '规则处理': 'ルール処理',
+    '来源': '移動元',
+    '牌库刷新': 'デッキをリフレッシュ'
+  }));
+
+
+  const siteRegex6 = [
+    [/^(.+)\s*牌库刷新$/u, '$1 デッキをリフレッシュ'],
+    [/^休息室\s*(\d+)\s*张洗入主卡组，刷新后主卡组\s*(\d+)\s*张$/u, '控え室の$1枚をメインデッキに戻してシャッフル。リフレッシュ後のメインデッキは$2枚'],
+    [/^回收\s*(\d+)\s*张卡$/u, '$1枚回収'],
+    [/^进入(.+)阶段$/u, '$1フェイズへ移行'],
+    [/^进入(.+)$/u, '$1へ移行'],
+    [/^窗口(.+)$/u, 'ウィンドウ：$1'],
+    [/^(.+)认输$/u, '$1が投了'],
+    [/^宣言\s*(.+)$/u, '宣言：$1'],
+    [/^规则处理：(.+)$/u, 'ルール処理：$1'],
+    [/^来源：(.+)$/u, '移動元：$1'],
+    [/^检视区\s*(\d+)\s*张\s*\/\s*(.+)$/u, '確認エリア $1枚 / $2'],
+    [/^第\s*(\d+)\s*张$/u, '$1枚目'],
+    [/^第(\d+)张手牌$/u, '手札$1枚目'],
+    [/^(\d+)\s*张(.+)$/u, '$1枚$2'],
+    [/^(.+)，手牌\s*(\d+)\s*张，(.+)$/u, '$1、手札$2枚、$3'],
+    [/^切换至\s*(.+)\s*视角$/u, '$1の視点へ切り替え'],
+    [/^(\d+)\s*条公开事件$/u, '公開イベント $1件'],
+    [/^(\d+)\s*条记录$/u, '記録 $1件']
+  ];
+
   const terms = [
     ['主卡组', 'メインデッキ'], ['能量卡组', 'ENERGYデッキ'],
     ['成功 LIVE 区', '成功LIVEエリア'], ['LIVE 区', 'LIVEエリア'],
@@ -2890,6 +2928,44 @@
     return lead + out + tail;
   }
 
+
+  const translatedUiPostReplacements = [
+    ['查看对墙打对手战场', 'ソロテストの相手盤面を見る'],
+    ['查看对手战场', '相手の盤面を見る'],
+    ['返回己方战场', '自分の盤面へ戻る'],
+    ['当前行动玩家', '現在の操作プレイヤー'],
+    ['休息室', '控え室'],
+    ['主卡组', 'メインデッキ'],
+    ['能量卡组', 'ENERGYデッキ'],
+    ['成功 LIVE 区', '成功LIVEエリア'],
+    ['成功 Live', '成功LIVE'],
+    ['LIVE 区', 'LIVEエリア'],
+    ['Live 区', 'LIVEエリア'],
+    ['成员区', 'メンバーエリア'],
+    ['能量区', 'ENERGYエリア'],
+    ['解决区', '解決領域'],
+    ['检视区', '確認エリア'],
+    ['手牌', '手札'],
+    ['成员', 'メンバー'],
+    ['能量', 'ENERGY'],
+    ['登场', '登場'],
+    ['起动', '起動'],
+    ['活跃', 'ACTIVE'],
+    ['等待', 'WAIT'],
+    ['当前', '現在'],
+    ['规则处理', 'ルール処理'],
+    ['来源', '移動元']
+  ];
+
+  function postProcessTranslatedUi(text, original) {
+    if (text === original) return text;
+    let out = text;
+    for (const [from, to] of translatedUiPostReplacements) {
+      if (out.includes(from)) out = out.split(from).join(to);
+    }
+    return out;
+  }
+
   function translateCore(text) {
     if (cardNames.has(text)) return cardNames.get(text);
     if (cardTexts.has(text)) return cardTexts.get(text);
@@ -2909,11 +2985,20 @@
     else if (siteExact5.has(out)) out = siteExact5.get(out);
     else if (siteExact6.has(out)) out = siteExact6.get(out);
     else if (siteExact7.has(out)) out = siteExact7.get(out);
+    else if (siteExact8.has(out)) out = siteExact8.get(out);
     else {
       for (const rule of regex) {
         if (rule[0].test(out)) {
           out = out.replace(rule[0], rule[1]);
           break;
+        }
+      }
+      if (out === text) {
+        for (const rule of siteRegex6) {
+          if (rule[0].test(out)) {
+            out = out.replace(rule[0], rule[1]);
+            break;
+          }
         }
       }
       if (out === text) {
@@ -2959,6 +3044,7 @@
     }
     const effectText = replaceCardTextPrefix(out);
     if (effectText !== out) out = translateEffectRuntimeSuffix(effectText);
+    out = postProcessTranslatedUi(out, text);
     if (cardNameRegex) out = out.replace(cardNameRegex, (name) => cardNames.get(name) || name);
     return out;
   }
