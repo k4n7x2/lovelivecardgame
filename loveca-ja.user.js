@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Loveca 日本語化
 // @namespace    https://github.com/k4n7x2/lovelivecardgame
-// @version      0.6.0
+// @version      0.6.1
 // @description  loveca.lovelivefun.xyz のプレイヤー向けUIとカード表示を日本語化します。
 // @match        https://loveca.lovelivefun.xyz/*
 // @updateURL    https://raw.githubusercontent.com/k4n7x2/lovelivecardgame/main/loveca-ja.user.js
@@ -637,8 +637,8 @@
     '调试日志': 'デバッグログ',
     '成员登场': 'メンバー登場',
     '选择此卡': 'このカードを選択',
-    '收起原卡文': '元のカードテキストを閉じる',
-    '查看原卡文': '元のカードテキストを見る',
+    '收起原卡文': '中国語テキストを閉じる',
+    '查看原卡文': '中国語テキストを見る',
     '空位': '空き',
     '侧': 'サイド',
     '选择': '選択',
@@ -2617,36 +2617,109 @@
   }
 
 
+  const effectPanelCache = new WeakMap();
+
+  function cloneChildrenInto(target, template) {
+    const clones = Array.from(template.childNodes, (node) => node.cloneNode(true));
+    target.replaceChildren(...clones);
+  }
+
+  function applyJapaneseEffectPanel(box, cached) {
+    const mainEffect = box?.firstElementChild;
+    if (!mainEffect || !cached?.jpTemplate) return false;
+    cloneChildrenInto(mainEffect, cached.jpTemplate);
+    if (cached.runtimeSuffix) {
+      mainEffect.append(document.createTextNode(' ' + cached.runtimeSuffix));
+    }
+    mainEffect.dataset.lovecaJaJapaneseEffect = '1';
+    return true;
+  }
+
   function normalizeEffectOriginalTextRows(root) {
     if (!root.querySelectorAll) return;
+
     for (const button of root.querySelectorAll('button')) {
       const text = (button.textContent || '').trim();
-      const isOpen = text === '元のカードテキストを閉じる' || text === '收起原卡文';
-      const isClosed = text === '元のカードテキストを見る' || text === '查看原卡文';
+      const isOpen =
+        text === '中国語テキストを閉じる' ||
+        text === '元のカードテキストを閉じる' ||
+        text === '收起原卡文';
+      const isClosed =
+        text === '中国語テキストを見る' ||
+        text === '元のカードテキストを見る' ||
+        text === '查看原卡文';
       if (!isOpen && !isClosed) continue;
 
-      button.textContent = isOpen ? '中国語テキストを閉じる' : '中国語テキストを見る';
-      const container = button.parentElement;
-      if (!container) continue;
+      const section = button.parentElement;
+      const box = section?.parentElement;
+      if (!section || !box) continue;
 
-      for (const label of container.querySelectorAll('div')) {
+      button.textContent = isOpen ? '中国語テキストを閉じる' : '中国語テキストを見る';
+
+      const cached = effectPanelCache.get(box);
+      if (cached) applyJapaneseEffectPanel(box, cached);
+
+      if (isClosed && !cached && section.dataset.lovecaJaAutoProbe !== '1') {
+        section.dataset.lovecaJaAutoProbe = '1';
+        button.click();
+        continue;
+      }
+
+      if (!isOpen) continue;
+
+      let cnRow = null;
+      let jpRow = null;
+      for (const label of section.querySelectorAll('div')) {
+        if (label.children.length > 0) continue;
         const labelText = (label.textContent || '').trim();
-        if (labelText === '原卡文' || labelText === 'カードテキスト') {
-          if (label.children.length === 0) label.textContent = '中国語カードテキスト';
-        } else if (labelText === '日文' || labelText === '日本語') {
-          const row = label.parentElement;
-          if (row && row !== container) {
-            row.dataset.lovecaJaHiddenJpOriginal = '1';
-            row.style.display = 'none';
-          }
+
+        if (labelText === '原卡文' || labelText === 'カードテキスト' || labelText === '元のカードテキスト') {
+          label.textContent = '中国語カードテキスト';
         } else if (labelText === '中文' || labelText === '中国語') {
-          const row = label.parentElement;
-          if (row && row.dataset.lovecaJaHiddenCn !== '1') row.style.display = '';
+          cnRow = label.parentElement;
+          label.textContent = '中国語';
+        } else if (labelText === '日文' || labelText === '日本語') {
+          jpRow = label.parentElement;
+          label.textContent = '日本語';
+        }
+      }
+
+      const cnEffect = cnRow?.children?.[1] ?? null;
+      const jpEffect = jpRow?.children?.[1] ?? null;
+      const mainEffect = box.firstElementChild;
+
+      if (cnEffect && jpEffect && mainEffect) {
+        const mainText = (mainEffect.textContent || '').trim();
+        const cnText = (cnEffect.textContent || '').trim();
+        let runtimeSuffix = '';
+
+        if (cnText && mainText.startsWith(cnText)) {
+          runtimeSuffix = mainText.slice(cnText.length).trim();
+        }
+
+        runtimeSuffix = translateEffectRuntimeSuffix(runtimeSuffix);
+        const jpTemplate = jpEffect.cloneNode(true);
+        effectPanelCache.set(box, { jpTemplate, runtimeSuffix });
+        applyJapaneseEffectPanel(box, { jpTemplate, runtimeSuffix });
+
+        if (jpRow) {
+          jpRow.dataset.lovecaJaHiddenJpOriginal = '1';
+          jpRow.style.display = 'none';
+        }
+        if (cnRow) {
+          cnRow.dataset.lovecaJaOriginalCn = '1';
+          cnRow.style.display = '';
+        }
+
+        if (section.dataset.lovecaJaAutoProbe === '1') {
+          section.dataset.lovecaJaAutoProbe = 'done';
+          queueMicrotask(() => {
+            if ((button.textContent || '').trim() === '中国語テキストを閉じる') button.click();
+          });
         }
       }
     }
   }
-
   function normalizeCardRows(root) {
     if (!root.querySelectorAll) return;
     for (const label of root.querySelectorAll('span')) {
@@ -2755,7 +2828,8 @@
     }
   }
 
-  installCardApiJapanesePreference();
+  // Keep the upstream bilingual card payload intact. Japanese-first rendering is handled
+  // in the DOM layer so the original Chinese text remains available on demand.
 
   function boot() {
     document.documentElement.lang = 'ja';
